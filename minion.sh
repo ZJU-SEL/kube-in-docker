@@ -11,7 +11,10 @@ fi
 wget -qO- https://get.docker.com/ | sh
 
 MASTER_IP=""
+
+# You can use minion's ip instead
 HOSTNAME=""
+
 flannelCID=""
 if [ -z "${MASTER_IP}" ]; then
 	echo "must set MASTER_IP and HOSTNAME variable"
