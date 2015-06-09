@@ -238,23 +238,15 @@ start_k8s(){
 
     case "$lsb_dist" in
 		fedora|centos)
-            yum install bridge-utils
+            yum install bridge-utils && brctl delbr docker0 && systemctl restart docker
         ;;
         ubuntu|debian|linuxmint)
-            apt-get install bridge-utils 
-        ;;
-    esac 
-
-    brctl delbr docker0
-
-	case "$lsb_dist" in
-		fedora|centos)
-            systemctl restart docker
-        ;;
-        ubuntu|debian|linuxmint)
-            service docker restart
+            apt-get install bridge-utils && brctl delbr docker0 && service docker restart
         ;;
     esac
+
+    # sleep a little bit
+	sleep 5
 
     install_registry
 

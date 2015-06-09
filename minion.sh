@@ -73,7 +73,7 @@ install_docker() {
 		Please ensure that you do not already have docker installed.
 		You may press Ctrl+C now to abort this process and rectify this situation.
 		EOF
-		( set -x; sleep 20 )
+		( set -x; sleep 10 )
 	fi
 
 	user="$(id -un 2>/dev/null || true)"
@@ -104,17 +104,8 @@ install_docker() {
 
 	case "$lsb_dist" in
 		fedora|centos)
-			if [ "$lsb_dist" = 'amzn' ]; then
-				(
-					set -x
-					$sh_c 'sleep 3; yum -y -q install docker'
-				)
-			else
-				(
-					set -x
-					$sh_c 'sleep 3; yum -y -q install docker-io'
-				)
-			fi
+			$sh_c 'sleep 3; yum -y -q install docker-io'
+				
 			if command_exists docker && [ -e /var/run/docker.sock ]; then
 				(
 					set -x
@@ -202,7 +193,7 @@ install_docker() {
 		*)
             cat >&2 <<-'EOF'
 
-			  Either your platform is not easily detectable, is not supported by this
+			  Your platform is not easily detectable, not supported by this
 			  installer script.
 
 			  Sorry !
@@ -211,12 +202,10 @@ install_docker() {
 			exit 1
 	esac
 
-	# Start a bootstrap docker daemon for running
+	# setup the docker bootstrap daemon too
 	sudo -b docker -d -H unix:///var/run/docker-bootstrap.sock -p /var/run/docker-bootstrap.pid --iptables=false --ip-masq=false --bridge=none --graph=/var/lib/docker-bootstrap 2> /var/log/docker-bootstrap.log 1> /dev/null
-	# Wait a little bit
-	sleep 5
 
-	# change the docker registy settings
+	sleep 5
 }
 
 install_k8s_minion() {
@@ -226,23 +215,20 @@ install_k8s_minion() {
 	sleep 8
 	sudo docker -H unix:///var/run/docker-bootstrap.sock cp ${flannelCID}:/run/flannel/subnet.env .
 	source subnet.env
-	# configure docker net settings ans restart it
 
+	# configure docker net settings and registry, then restart it
 	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry ${MASTER_IP}:5000\"" | sudo tee -a ${DOCKER_CONF}
 
-	sudo ifconfig docker0 down
+	ifconfig docker0 down
 
-	case "$lsb_dist" in
+    case "$lsb_dist" in
 		fedora|centos)
-            sudo yum install bridge-utils
+            yum install bridge-utils && brctl delbr docker0 && systemctl restart docker
         ;;
         ubuntu|debian|linuxmint)
-            sudo apt-get install bridge-utils 
+            apt-get install bridge-utils && brctl delbr docker0 && service docker restart
         ;;
     esac
-
-	sudo brctl delbr docker0
-	sudo service docker restart
 
 	# sleep a little bit
 	sleep 5
