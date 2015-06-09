@@ -7,11 +7,17 @@ url='https://get.docker.com/'
 lsb_dist=""
 DOCKER_CONF=""
 MASTER_IP="10.168.14.145"
+# You can use minion's ip instead
 HOSTNAME="10.168.10.5"
 
 if [ "$(id -u)" != "0" ]; then
   echo >&2 "Please run as root"
   exit 1
+fi
+
+if [ -z "${MASTER_IP}" ]; then
+	echo "must set MASTER_IP and HOSTNAME variable"
+	exit
 fi
 
 command_exists() {

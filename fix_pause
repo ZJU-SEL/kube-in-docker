@@ -1,0 +1,2 @@
+docker pull docker.io/kubernetes/pause
+docker tag docker.io/kubernetes/pause gcr.io/google_containers/pause:0.8.0
