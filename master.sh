@@ -2,14 +2,16 @@
 
 set -ex
 
-# variables which user filled in 
+# variables which requires user filled in 
 # registry related
 PRIVATE_IP="10.168.14.145"
 PRIVATE_PORT="5000"
+# extra volume for registry
 HOSTDIR="/mnt"
 
 url='https://get.docker.com/'
-# we support ubuntu, debian, mint, centos, fedora and gentoo dist
+
+# we support ubuntu, debian, mint, centos, fedora dist
 lsb_dist=""
 DOCKER_CONF=""
 
@@ -77,7 +79,7 @@ install_docker() {
 		Please ensure that you do not already have docker installed.
 		You may press Ctrl+C now to abort this process and rectify this situation.
 		EOF
-		( set -x; sleep 20 )
+		( set -x; sleep 10 )
 	fi
 
 	user="$(id -un 2>/dev/null || true)"
@@ -108,17 +110,8 @@ install_docker() {
 
 	case "$lsb_dist" in
 		fedora|centos)
-			if [ "$lsb_dist" = 'amzn' ]; then
-				(
-					set -x
-					$sh_c 'sleep 3; yum -y -q install docker'
-				)
-			else
-				(
-					set -x
-					$sh_c 'sleep 3; yum -y -q install docker-io'
-				)
-			fi
+			$sh_c 'sleep 3; yum -y -q install docker-io'
+				
 			if command_exists docker && [ -e /var/run/docker.sock ]; then
 				(
 					set -x
@@ -206,7 +199,7 @@ install_docker() {
 		*)
             cat >&2 <<-'EOF'
 
-			  Either your platform is not easily detectable, is not supported by this
+			  Your platform is not easily detectable, not supported by this
 			  installer script.
 
 			  Sorry !
@@ -215,7 +208,7 @@ install_docker() {
 			exit 1
 	esac
 
-	# prepare the docker bootstrap daemon
+	# setup the docker bootstrap daemon too
 	sudo -b docker -d -H unix:///var/run/docker-bootstrap.sock -p /var/run/docker-bootstrap.pid --iptables=false --ip-masq=false --bridge=none --graph=/var/lib/docker-bootstrap 2> /var/log/docker-bootstrap.log 1> /dev/null
 
 	sleep 5
@@ -229,28 +222,41 @@ start_k8s(){
 	# Set flannel net config
 	docker -H unix:///var/run/docker-bootstrap.sock run --net=host wizardcxy/etcd:2.0.9 etcdctl set /coreos.com/network/config '{ "Network": "10.1.0.0/16" }'
     
-    # iface may change to a private network interface
+    # iface may change to a private network interface, eth0 is for ali ecs
     flannelCID=$(docker -H unix:///var/run/docker-bootstrap.sock run -d --net=host --privileged -v /dev/net:/dev/net quay.io/coreos/flannel:0.3.0 /opt/bin/flanneld -iface="eth0")
 	
 	sleep 8
 
-	# configure docker net settings ans restart it
+	# Configure docker net settings and registry setting and restart it
 	docker -H unix:///var/run/docker-bootstrap.sock cp ${flannelCID}:/run/flannel/subnet.env .
 	source subnet.env
 
-	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET}\"" | sudo tee -a sudo tee -a ${DOCKER_CONF}
+    # use insecure docker registry
+	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry=${PRIVATE_IP}:${PRIVATE_PORT}\"" | sudo tee -a sudo tee -a ${DOCKER_CONF}
 
 	ifconfig docker0 down
-    apt-get install bridge-utils && sudo brctl delbr docker0
+
+    case "$lsb_dist" in
+		fedora|centos)
+            yum install bridge-utils
+        ;;
+        ubuntu|debian|linuxmint)
+            apt-get install bridge-utils 
+        ;;
+    esac 
+
+    brctl delbr docker0
 
 	case "$lsb_dist" in
 		fedora|centos)
-            systemctl stop docker
+            systemctl restart docker
         ;;
         ubuntu|debian|linuxmint)
             service docker restart
         ;;
     esac
+
+    install_registry
 
 	# Start Master components
 	docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v0.17.0 /hyperkube kubelet --api_servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=127.0.0.1 --config=/etc/kubernetes/manifests-multi
@@ -259,10 +265,7 @@ start_k8s(){
 
 install_registry(){
 	# install private registry then
-    docker -H unix:///var/run/docker-bootstrap.sock run -itd -p ${PRIVATE_IP}:${PRIVATE_PORT}:5000 -v ${HOSTDIR}:/tmp/registry-dev wizardcxy/registry:2.0
-
-    # use insecure docker registry 
-    echo "DOCKER_OPTS=\"\$DOCKER_OPTS --insecure-registry=${PRIVATE_IP}:${PRIVATE_PORT}\"" | sudo tee -a ${DOCKER_CONF}
+    docker run -itd -p ${PRIVATE_IP}:${PRIVATE_PORT}:5000 -v ${HOSTDIR}:/tmp/registry-dev wizardcxy/registry:2.0
 }
 
 detect_lsb
@@ -272,5 +275,3 @@ install_docker
 install_registry
 
 start_k8s
-
-
