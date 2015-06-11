@@ -9,6 +9,7 @@ DOCKER_CONF=""
 MASTER_IP="10.168.14.145"
 # You can use minion's ip instead
 HOSTNAME="10.168.10.5"
+USER="cxy"
 
 if [ "$(id -u)" != "0" ]; then
   echo >&2 "Please run as root"
@@ -223,7 +224,7 @@ install_k8s_minion() {
 	source subnet.env
 
 	# configure docker net settings and registry, then restart it
-	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry ${MASTER_IP}:5000\"" | sudo tee -a ${DOCKER_CONF}
+	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry ${USER}reg:5000\"" | sudo tee -a ${DOCKER_CONF}
 
 	ifconfig docker0 down
 
@@ -238,6 +239,8 @@ install_k8s_minion() {
 
 	# sleep a little bit
 	sleep 5
+
+	echo "${MASTER_IP} ${USER}reg" | sudo tee -a /etc/hosts
 
 	# Start minion
 	sudo docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v0.17.0 /hyperkube kubelet --api_servers=http://${MASTER_IP}:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=${HOSTNAME}
