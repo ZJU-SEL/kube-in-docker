@@ -8,6 +8,7 @@ PRIVATE_IP="10.168.14.145"
 PRIVATE_PORT="5000"
 # extra volume for registry
 HOSTDIR="/mnt"
+USER="cxy"
 
 url='https://get.docker.com/'
 
@@ -232,7 +233,7 @@ start_k8s(){
 	source subnet.env
 
     # use insecure docker registry
-	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry=${PRIVATE_IP}:${PRIVATE_PORT}\"" | sudo tee -a sudo tee -a ${DOCKER_CONF}
+	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry=${USER}reg:${PRIVATE_PORT}\"" | sudo tee -a sudo tee -a ${DOCKER_CONF}
 
 	ifconfig docker0 down
 
@@ -257,13 +258,13 @@ start_k8s(){
 
 install_registry(){
 	# install private registry then
-    docker run -itd -p ${PRIVATE_IP}:${PRIVATE_PORT}:5000 -v ${HOSTDIR}:/tmp/registry-dev wizardcxy/registry:2.0
+    docker run --restart=on-failure:10 -itd -p 5000:5000 -v ${HOSTDIR}:/tmp/registry-dev wizardcxy/registry:2.0
+    
+    echo "${PRIVATE_IP} ${USER}reg" | sudo tee -a /etc/hosts
 }
 
 detect_lsb
 
 install_docker
-
-install_registry
 
 start_k8s
