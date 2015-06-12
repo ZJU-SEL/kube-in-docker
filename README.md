@@ -20,9 +20,30 @@ At least one node have access to Internet, no PublicIP required.
 
 **Usage**
 
-On the node which have Internet access, run `master.sh`. This node will act as both master & minion.
+On the node which have Internet access, set these ENV:
 
-On every other worker node, run `minion.sh`. They will act as minion.
+```
+# variables which requires user filled in 
+# registry related
+PRIVATE_IP="10.168.14.145"
+PRIVATE_PORT="5000"
+# extra volume for registry
+HOSTDIR="/mnt"
+USER="cxy"
+```
+
+run `master.sh`. This node will act as both master & minion.
+
+On every other worker node, set these ENV: 
+
+```
+MASTER_IP="10.168.14.145"
+# just use minion's ip instead
+HOSTNAME="10.168.10.5"
+USER="cxy"
+```
+
+run `minion.sh`. They will act as minion.
 
 Done!
 
