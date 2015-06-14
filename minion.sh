@@ -10,6 +10,7 @@ MASTER_IP="10.168.14.145"
 # You can use minion's ip instead
 HOSTNAME="10.168.10.5"
 USER="cxy"
+K8S_VERSION=0.18.2
 
 if [ "$(id -u)" != "0" ]; then
   echo >&2 "Please run as root"
@@ -243,8 +244,8 @@ install_k8s_minion() {
 	echo "${MASTER_IP} ${USER}reg" | sudo tee -a /etc/hosts
 
 	# Start minion
-	sudo docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v0.17.0 /hyperkube kubelet --api_servers=http://${MASTER_IP}:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=${HOSTNAME}
-	sudo docker run -d --net=host --privileged wizardcxy/hyperkube:v0.17.0 /hyperkube proxy --master=http://${MASTER_IP}:8080 --v=2
+	sudo docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube kubelet --api_servers=http://${MASTER_IP}:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=${HOSTNAME}
+	sudo docker run -d --net=host --privileged wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube proxy --master=http://${MASTER_IP}:8080 --v=2
 
 }
 
