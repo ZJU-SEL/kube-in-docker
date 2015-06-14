@@ -9,6 +9,7 @@ PRIVATE_PORT="5000"
 # extra volume for registry
 HOSTDIR="/mnt"
 USER="cxy"
+K8S_VERSION=0.18.2
 
 url='https://get.docker.com/'
 
@@ -252,8 +253,8 @@ start_k8s(){
     install_registry
 
 	# Start Master components
-	docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v0.17.0 /hyperkube kubelet --api_servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=127.0.0.1 --config=/etc/kubernetes/manifests-multi
-    docker run -d --net=host --privileged wizardcxy/hyperkube:v0.17.0 /hyperkube proxy --master=http://127.0.0.1:8080 --v=2   
+	docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube kubelet --api_servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=127.0.0.1 --config=/etc/kubernetes/manifests-multi
+    docker run -d --net=host --privileged wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube proxy --master=http://127.0.0.1:8080 --v=2   
 }
 
 install_registry(){
