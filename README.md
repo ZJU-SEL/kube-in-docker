@@ -1,7 +1,7 @@
 # kube-in-docker
 **Run Kubernetes in Docker and anywhere**
 
-We now support ubuntu, debian, mint, centos, fedora dist
+We now support ubuntu, debian, mint, centos, fedora distribution
 
 **On going**:
 
