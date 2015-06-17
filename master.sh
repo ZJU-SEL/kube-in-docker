@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 # variables which requires user filled in 
 # registry related
@@ -75,15 +75,6 @@ detect_lsb() {
 }
 
 install_docker() {
-	if command_exists docker || command_exists lxc-docker; then
-		cat >&2 <<-'EOF'
-		Warning: "docker" or "lxc-docker" command appears to already exist.
-		Please ensure that you do not already have docker installed.
-		You may press Ctrl+C now to abort this process and rectify this situation.
-		EOF
-		( set -x; sleep 10 )
-	fi
-
 	user="$(id -un 2>/dev/null || true)"
 
 	sh_c='sh -c'
@@ -214,6 +205,11 @@ install_docker() {
 	sudo -b docker -d -H unix:///var/run/docker-bootstrap.sock -p /var/run/docker-bootstrap.pid --iptables=false --ip-masq=false --bridge=none --graph=/var/lib/docker-bootstrap 2> /var/log/docker-bootstrap.log 1> /dev/null
 
 	sleep 5
+	sudo docker -H unix:///var/run/docker-bootstrap.sock load -i flannel.tar
+	sudo docker -H unix:///var/run/docker-bootstrap.sock load -i etcd.tar
+	sudo docker load -i hyper.tar
+	sudo docker load -i registry.tar
+	sudo docker load -i pause.tar
 }
 
 start_k8s(){
@@ -266,6 +262,10 @@ install_registry(){
 
 detect_lsb
 
+echo "installing docker"
 install_docker
+echo "done !"
 
+echo "install master"
 start_k8s
+echo "done"

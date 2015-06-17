@@ -8,7 +8,7 @@ export VERSION=v0.18.2
 
 cd image && make
 cd ..
-sudo docker save wizardcxy/hyperkube:${VERSION} > hyper${VERSION}.tar
+sudo docker save wizardcxy/hyperkube:${VERSION} > hyper.tar
 sudo docker pull docker.io/kubernetes/pause
 sudo docker save docker.io/kubernetes/pause > pause.tar
-tar czvf aio.tar.gz master.sh minion.sh pause.tar hyper${VERSION}.tar
+tar czvf aio.tar.gz master.sh minion.sh pause.tar hyper.tar

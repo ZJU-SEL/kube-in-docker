@@ -1,3 +1,3 @@
 aio.tar.gz
-hyper*
-pause*
+*.tar
+image/hyperkube
