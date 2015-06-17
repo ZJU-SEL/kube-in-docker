@@ -26,22 +26,6 @@ command_exists() {
 	command -v "$@" > /dev/null 2>&1
 }
 
-echo_docker_as_nonroot() {
-	your_user=your-user
-	[ "$user" != 'root' ] && your_user="$user"
-	# intentionally mixed spaces and tabs here -- tabs are stripped by "<<-EOF", spaces are kept in the output
-	cat <<-EOF
-
-	If you would like to use Docker as a non-root user, you should now consider
-	adding your user to the "docker" group with something like:
-
-	  sudo usermod -aG docker $your_user
-
-	Remember that you will have to log out and back in for this to take effect!
-
-	EOF
-}
-
 detect_lsb() {
 	case "$(uname -m)" in
 	*64)
@@ -112,7 +96,6 @@ install_docker() {
 				) || true
 			fi
             DOCKER_CONF="/etc/sysconfig/docker"
-			echo_docker_as_nonroot
 			;;
 		ubuntu|debian|linuxmint)
 			export DEBIAN_FRONTEND=noninteractive
@@ -186,7 +169,6 @@ install_docker() {
 				) || true
 			fi
 			DOCKER_CONF="/etc/default/docker"
-			echo_docker_as_nonroot
 			;;
 
 		*)
@@ -210,6 +192,7 @@ install_docker() {
 	sudo docker load -i hyper.tar
 	sudo docker load -i registry.tar
 	sudo docker load -i pause.tar
+	sudo docker load -i gorouter.tar
 }
 
 start_k8s(){
@@ -230,7 +213,7 @@ start_k8s(){
 	source subnet.env
 
     # use insecure docker registry
-	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry=${USER}reg:${PRIVATE_PORT}\"" | sudo tee -a sudo tee -a ${DOCKER_CONF}
+	echo "DOCKER_OPTS=\"\$DOCKER_OPTS --mtu=${FLANNEL_MTU} --bip=${FLANNEL_SUBNET} --insecure-registry=${USER}reg:${PRIVATE_PORT}\"" | sudo tee -a ${DOCKER_CONF}
 
 	ifconfig docker0 down
 
@@ -248,6 +231,8 @@ start_k8s(){
 
     install_registry
 
+    install_gorouter
+
 	# Start Master components
 	docker run --net=host -d -v /var/run/docker.sock:/var/run/docker.sock  wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube kubelet --api_servers=http://localhost:8080 --v=2 --address=0.0.0.0 --enable_server --hostname_override=127.0.0.1 --config=/etc/kubernetes/manifests-multi
     docker run -d --net=host --privileged wizardcxy/hyperkube:v${K8S_VERSION} /hyperkube proxy --master=http://127.0.0.1:8080 --v=2   
@@ -260,12 +245,16 @@ install_registry(){
     echo "${PRIVATE_IP} ${USER}reg" | sudo tee -a /etc/hosts
 }
 
+install_gorouter(){
+	docker run --restart=on-failure:10 -itd -p 80:8081 -p 8082 liuyilun/gorouter
+}
+
 detect_lsb
 
-echo "installing docker"
+echo "Installing docker"
 install_docker
-echo "done !"
+echo "Done !"
 
-echo "install master"
+echo "Installing master"
 start_k8s
-echo "done"
+echo "Done"
