@@ -3,11 +3,11 @@
 
 We now support ubuntu, debian, mint, centos, fedora distribution
 
-**On going**:
+**NOTE**:
 
-1. make this work on centos (done!)
-2. merge two scripts into one (pending)
-3. merge into kubernetes/master (doing)
+Our scripts has been merged into Kubernetes repo as we expected, see this [offical guide](https://github.com/GoogleCloudPlatform/kubernetes/blob/master/docs/getting-started-guides/docker-multinode.md) for more details if you want to try. We'll maintain this work with Google guys there.
+
+However, the scirpts and docs in this repo will keep updating in order to meet our own projects' requirements, so don't expect it work in every enviroment.
 
 **TODO**:
 
